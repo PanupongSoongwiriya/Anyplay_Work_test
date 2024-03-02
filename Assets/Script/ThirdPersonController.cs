@@ -9,6 +9,7 @@ public class ThirdPersonController : MonoBehaviour
     private ThirdPersonAction action;
     private InputAction move;
 
+    private CharacterController characterController;
     private Rigidbody rb;
 
     [SerializeField]
@@ -16,8 +17,13 @@ public class ThirdPersonController : MonoBehaviour
     [SerializeField]
     private float jumpForce = 5;
     [SerializeField]
-    private float maxSpeed = 5;
+    private float maxSpeed = 6;
     private Vector3 forceDirection = Vector3.zero;
+
+    [SerializeField]
+    private float turnSmoothTime = .1f;
+    float turnSmoothVelocity;
+
 
     [SerializeField]
     private Camera playerCamera;
@@ -26,6 +32,7 @@ public class ThirdPersonController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         action = new ThirdPersonAction();
+        characterController = GetComponent<CharacterController>();
     }
 
     private void OnEnable()
@@ -41,10 +48,35 @@ public class ThirdPersonController : MonoBehaviour
         action.Player.Disable();
     }
 
+    private void Update()
+    {
+        Vector3 horizontal = move.ReadValue<Vector2>().x * GetCameraRight(playerCamera);
+        Vector3 vertical = move.ReadValue<Vector2>().y * GetCameraForward(playerCamera);
+
+        forceDirection += horizontal;
+        forceDirection += vertical;
+
+        forceDirection = forceDirection.normalized;
+
+        if (forceDirection.magnitude >= .1f)
+        {
+            float targetAmgle = MathF.Atan2(forceDirection.x, forceDirection.z) * Mathf.Rad2Deg + playerCamera.transform.eulerAngles.y;
+            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAmgle, ref turnSmoothVelocity, turnSmoothTime);
+            transform.rotation = Quaternion.Euler(0, angle, 0);
+
+            Vector3 moveDir = Quaternion.Euler(0, targetAmgle, 0) * Vector3.forward;
+
+            characterController.Move(moveDir.normalized * movementForce * Time.deltaTime);
+        }
+
+        forceDirection = Vector3.zero;
+    }
+
     private void FixedUpdate()
     {
-        forceDirection += move.ReadValue<Vector2>().x * GetCameraRight(playerCamera) * movementForce;
+         /*forceDirection += move.ReadValue<Vector2>().x * GetCameraRight(playerCamera) * movementForce;
         forceDirection += move.ReadValue<Vector2>().y * GetCameraForward(playerCamera) * movementForce;
+
 
         rb.AddForce(forceDirection, ForceMode.Impulse);
         forceDirection = Vector3.zero;
@@ -59,12 +91,12 @@ public class ThirdPersonController : MonoBehaviour
             rb.velocity = horizontalVelocity.normalized * maxSpeed + Vector3.up * rb.velocity.y;
         }
 
-        LookAt();
+        LookAt();*/
     }
 
     private void LookAt()
     {
-        Vector3 direction = rb.velocity;
+        Vector3 direction = forceDirection;
         direction.y = 0;
 
         if (move.ReadValue<Vector2>().sqrMagnitude > .1f && direction.sqrMagnitude > .1f)
@@ -89,7 +121,8 @@ public class ThirdPersonController : MonoBehaviour
 
     private void DoJump(InputAction.CallbackContext context)
     {
-        if (IsGround())
+        print("DoJump: " + characterController.isGrounded);
+        if (characterController.isGrounded)
         {
             forceDirection += Vector3.up * jumpForce;
         }
