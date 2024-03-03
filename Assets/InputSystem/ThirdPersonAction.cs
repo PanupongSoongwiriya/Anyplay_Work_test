@@ -60,7 +60,7 @@ public partial class @ThirdPersonAction: IInputActionCollection2, IDisposable
                     ""id"": ""ba7f5d2c-6501-4e1d-85a4-484f7105df7e"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
-                    ""interactions"": """",
+                    ""interactions"": ""Press(behavior=2)"",
                     ""initialStateCheck"": false
                 }
             ],
