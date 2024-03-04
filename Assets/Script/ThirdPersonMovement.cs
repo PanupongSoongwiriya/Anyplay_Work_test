@@ -6,7 +6,8 @@ public class ThirdPersonMovement : NetworkBehaviour
 {
     private ThirdPersonController TPController;
 
-    private CharacterController characterController;
+    private Rigidbody rb;
+    private CapsuleCollider cc;
 
     [Header("Speed Settings")]
     [SerializeField] private float CurrentSpeed;
@@ -14,18 +15,16 @@ public class ThirdPersonMovement : NetworkBehaviour
     [SerializeField] private float WalkSpeed = 2;
     [SerializeField] private float CrouchSpeed = 1.25f;
     [SerializeField] private float CrawlSpeed = 0.75f;
-    private Vector3 targetDirection;
+    private Vector3 movementInput;
 
-    [Header("Jump & Gravity Settings")]
-    [SerializeField] private float Gravity = -15;
+    [Header("Jump Settings")]
     [SerializeField] private float JumpHeight = 1.2f;
-    private float verticalVelocity;
 
     [Header("Grounded Settings")]
     [SerializeField] private float GroundedOffset = -0.14f;
     [SerializeField] private float GroundedRadius = 0.28f;
     [SerializeField] private LayerMask GroundLayers;
-    private bool IsGrounded;
+    [SerializeField] private bool IsGrounded;
 
     public override void OnStartClient()
     {
@@ -38,7 +37,8 @@ public class ThirdPersonMovement : NetworkBehaviour
 
     private void Awake()
     {
-        characterController = GetComponent<CharacterController>();
+        rb = GetComponent<Rigidbody>();
+        cc = GetComponent<CapsuleCollider>();
         TPController = GetComponent<ThirdPersonController>();
         CurrentSpeed = WalkSpeed;
     }
@@ -52,7 +52,7 @@ public class ThirdPersonMovement : NetworkBehaviour
     {
         if (IsGrounded)
         {
-            verticalVelocity = Mathf.Sqrt(JumpHeight * -2 * Gravity);
+            rb.AddForce(Vector3.up * JumpHeight, ForceMode.Impulse);
         }
     }
 
@@ -77,30 +77,29 @@ public class ThirdPersonMovement : NetworkBehaviour
 
     public void setHitBox(float center, float height)
     {
-        characterController.center = new Vector3(0, center, 0);
-        characterController.height = height;
+        cc.center = new Vector3(0, center, 0);
+        cc.height = height;
     }
 
     private void Move()
     {
-        Vector3 horizontal = TPController.move.ReadValue<Vector2>().x * GetCameraRight();
-        Vector3 vertical = TPController.move.ReadValue<Vector2>().y * GetCameraForward();
-
-        targetDirection += horizontal;
-        targetDirection += vertical;
-
-        targetDirection = targetDirection.normalized;
-
-        if (targetDirection.magnitude >= .1f)
+        if (IsGrounded)
         {
-            characterController.Move(targetDirection * CurrentSpeed * Time.deltaTime);
+            Vector3 horizontal = TPController.move.ReadValue<Vector2>().x * GetCameraRight();
+            Vector3 vertical = TPController.move.ReadValue<Vector2>().y * GetCameraForward();
+
+            movementInput += horizontal;
+            movementInput += vertical;
+
+            movementInput = movementInput.normalized;
+
+            if (movementInput.magnitude >= .1f)
+            {
+                Vector3 direction = movementInput * CurrentSpeed;
+                rb.velocity = new Vector3(direction.x, rb.velocity.y, direction.z);
+            }
+            movementInput = Vector3.zero;
         }
-        targetDirection = Vector3.zero;
-
-        verticalVelocity += Gravity * Time.deltaTime;
-        verticalVelocity = Mathf.Max(verticalVelocity, Gravity / 1.5f);
-
-        characterController.Move(new Vector3(0.0f, verticalVelocity, 0.0f) * Time.deltaTime);
     }
     private void GroundedCheck()
     {
