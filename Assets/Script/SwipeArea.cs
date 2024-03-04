@@ -3,9 +3,13 @@ using UnityEngine.EventSystems;
 
 public class SwipeArea : MonoBehaviour, IDragHandler
 {
+    public ThirdPersonCamera TPCamera;
+
     public void OnDrag(PointerEventData eventData)
     {
-        if (ThirdPersonCamera.Instance != null)
-            ThirdPersonCamera.Instance.LookAround(eventData.position);
+        if (TPCamera != null)
+        {
+            TPCamera.LookAround(eventData.position);
+        }
     }
 }

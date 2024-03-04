@@ -1,42 +1,77 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using FishNet.Connection;
+using FishNet.Object;
 
-public class ThirdPersonController : MonoBehaviour
+public class ThirdPersonController : NetworkBehaviour
 {
-    public static ThirdPersonController Instance;
-
     private ThirdPersonAction action;
-    [HideInInspector] public InputAction move;
+    [HideInInspector]
+    public InputAction move;
     public string state = "Stand";
 
     public Camera thirdPersonCamera;
     private ThirdPersonMovement TPMovement;
+    private ThirdPersonCamera TPCamera;
+    public GameObject UIController;
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        print(name);
+        if (base.IsOwner)
+        {
+            print("IsOwner");
+            action = new ThirdPersonAction();
+            TPMovement = GetComponent<ThirdPersonMovement>();
+            TPCamera = GetComponent<ThirdPersonCamera>();
+
+            action.Player.Jump.started += DoJump;
+            action.Player.Crouch.started += DoCrouch;
+            action.Player.Crawl.started += DoCrawl;
+            move = action.Player.Move;
+            action.Player.Enable();
+        }
+        else
+        {
+            enabled = false;
+            UIController.SetActive(false);
+            thirdPersonCamera.gameObject.SetActive(false);
+        }
+    }
 
     private void Awake()
     {
-        Instance = this;
+        /*Instance = this;
         action = new ThirdPersonAction();
-        TPMovement = GetComponent<ThirdPersonMovement>();
+        TPMovement = GetComponent<ThirdPersonMovement>();*/
     }
     private void Update()
     {
-        Instance = this;
     }
     private void OnEnable()
     {
-        action.Player.Jump.started += DoJump;
-        action.Player.Crouch.started += DoCrouch;
-        action.Player.Crawl.started += DoCrawl;
-        move = action.Player.Move;
-        action.Player.Enable();
+        if (base.IsOwner)
+        {
+            print("OnEnable");
+            action.Player.Jump.started += DoJump;
+            action.Player.Crouch.started += DoCrouch;
+            action.Player.Crawl.started += DoCrawl;
+            move = action.Player.Move;
+            action.Player.Enable();
+        }
     }
 
     private void OnDisable()
     {
-        action.Player.Jump.started -= DoJump;
-        action.Player.Crouch.started -= DoCrouch;
-        action.Player.Crawl.started -= DoCrawl;
-        action.Player.Disable();
+        if (base.IsOwner)
+        {
+            print("OnDisable");
+            action.Player.Jump.started -= DoJump;
+            action.Player.Crouch.started -= DoCrouch;
+            action.Player.Crawl.started -= DoCrawl;
+            action.Player.Disable();
+        }
     }
 
     private void DoJump(InputAction.CallbackContext context)
@@ -68,6 +103,6 @@ public class ThirdPersonController : MonoBehaviour
 
         TPMovement.ChangeSpeed();
         TPMovement.setHitBox(center, height);
-        ThirdPersonCamera.Instance.setCameraPositionY(y);
+        TPCamera.setCameraPositionY(y);
     }
 }

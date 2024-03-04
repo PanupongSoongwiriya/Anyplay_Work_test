@@ -1,7 +1,11 @@
 using UnityEngine;
+using FishNet.Connection;
+using FishNet.Object;
 
-public class ThirdPersonMovement : MonoBehaviour
+public class ThirdPersonMovement : NetworkBehaviour
 {
+    private ThirdPersonController TPController;
+
     private CharacterController characterController;
 
     [Header("Speed Settings")]
@@ -23,9 +27,19 @@ public class ThirdPersonMovement : MonoBehaviour
     [SerializeField] private LayerMask GroundLayers;
     private bool IsGrounded;
 
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        if (!base.IsOwner)
+        {
+            enabled = false;
+        }
+    }
+
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
+        TPController = GetComponent<ThirdPersonController>();
         CurrentSpeed = WalkSpeed;
     }
     private void Update()
@@ -37,28 +51,27 @@ public class ThirdPersonMovement : MonoBehaviour
     public void Jump()
     {
         if (IsGrounded)
+        {
             verticalVelocity = Mathf.Sqrt(JumpHeight * -2 * Gravity);
+        }
     }
 
     public void ChangeSpeed()
     {
-        if (ThirdPersonController.Instance != null)
+        switch (TPController.state)
         {
-            switch (ThirdPersonController.Instance.state)
-            {
-                case "Run":
-                    CurrentSpeed = RunSpeed;
-                    break;
-                case "Crouch":
-                    CurrentSpeed = CrouchSpeed;
-                    break;
-                case "Crawl":
-                    CurrentSpeed = CrawlSpeed;
-                    break;
-                default:
-                    CurrentSpeed = WalkSpeed;
-                    break;
-            }
+            case "Run":
+                CurrentSpeed = RunSpeed;
+                break;
+            case "Crouch":
+                CurrentSpeed = CrouchSpeed;
+                break;
+            case "Crawl":
+                CurrentSpeed = CrawlSpeed;
+                break;
+            default:
+                CurrentSpeed = WalkSpeed;
+                break;
         }
     }
 
@@ -70,29 +83,25 @@ public class ThirdPersonMovement : MonoBehaviour
 
     private void Move()
     {
-        if (ThirdPersonController.Instance != null)
+        Vector3 horizontal = TPController.move.ReadValue<Vector2>().x * GetCameraRight();
+        Vector3 vertical = TPController.move.ReadValue<Vector2>().y * GetCameraForward();
+
+        targetDirection += horizontal;
+        targetDirection += vertical;
+
+        targetDirection = targetDirection.normalized;
+
+        if (targetDirection.magnitude >= .1f)
         {
-            Vector3 horizontal = ThirdPersonController.Instance.move.ReadValue<Vector2>().x * GetCameraRight();
-            Vector3 vertical = ThirdPersonController.Instance.move.ReadValue<Vector2>().y * GetCameraForward();
-
-            targetDirection += horizontal;
-            targetDirection += vertical;
-
-            targetDirection = targetDirection.normalized;
-
-            if (targetDirection.magnitude >= .1f)
-            {
-                characterController.Move(targetDirection * CurrentSpeed * Time.deltaTime);
-            }
-            targetDirection = Vector3.zero;
+            characterController.Move(targetDirection * CurrentSpeed * Time.deltaTime);
         }
-        
+        targetDirection = Vector3.zero;
+
         verticalVelocity += Gravity * Time.deltaTime;
         verticalVelocity = Mathf.Max(verticalVelocity, Gravity / 1.5f);
 
         characterController.Move(new Vector3(0.0f, verticalVelocity, 0.0f) * Time.deltaTime);
     }
-
     private void GroundedCheck()
     {
         // set sphere position, with offset
@@ -104,14 +113,14 @@ public class ThirdPersonMovement : MonoBehaviour
 
     private Vector3 GetCameraRight()
     {
-        Vector3 right = ThirdPersonController.Instance.thirdPersonCamera.transform.right;
+        Vector3 right = TPController.thirdPersonCamera.transform.right;
         right.y = 0;
         return right;
     }
 
     private Vector3 GetCameraForward()
     {
-        Vector3 forward = ThirdPersonController.Instance.thirdPersonCamera.transform.forward;
+        Vector3 forward = TPController.thirdPersonCamera.transform.forward;
         forward.y = 0;
         return forward;
     }
