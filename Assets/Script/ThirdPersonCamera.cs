@@ -30,20 +30,24 @@ public class ThirdPersonCamera : MonoBehaviour
 
     private void Start()
     {
-        offsetCamera = ThirdPersonController.Instance.thirdPersonCamera.transform.localPosition;
+        if (ThirdPersonController.Instance != null)
+        {
+            offsetCamera = ThirdPersonController.Instance.thirdPersonCamera.transform.localPosition;
+
+            // Set max camera distance to the distance the camera is from the player in the editor
+            maxCameraDistance = ThirdPersonController.Instance.thirdPersonCamera.transform.localPosition.z;
+        }
 
         // calculate the movement input dead zone
         moveInputDeadZone = Mathf.Pow(Screen.height / moveInputDeadZone, 2);
 
         // Get the initial angle for the camera pole
         cameraPitch = cameraPole.localRotation.eulerAngles.x;
-
-        // Set max camera distance to the distance the camera is from the player in the editor
-        maxCameraDistance = ThirdPersonController.Instance.thirdPersonCamera.transform.localPosition.z;
     }
 
     private void Update()
     {
+        Instance = this;
         SmoothUpDown();
     }
 
@@ -86,23 +90,26 @@ public class ThirdPersonCamera : MonoBehaviour
 
     private void MoveCamera()
     {
-        Transform TPCameraTrans = ThirdPersonController.Instance.thirdPersonCamera.transform;
-        Vector3 rayDir = TPCameraTrans.position - cameraPole.position;
-
-        Debug.DrawRay(cameraPole.position, rayDir, Color.red);
-        // Check if the camera would be colliding with any obstacle
-        if (Physics.Raycast(cameraPole.position, rayDir, out RaycastHit hit, Mathf.Abs(maxCameraDistance), cameraObstacleLayers))
+        if (ThirdPersonController.Instance != null)
         {
-            // Move the camera to the impact point
-            Vector3 newCameraPos = hit.point;
-            newCameraPos.y = offsetCamera.y;
+            Transform TPCameraTrans = ThirdPersonController.Instance.thirdPersonCamera.transform;
+            Vector3 rayDir = TPCameraTrans.position - cameraPole.position;
 
-            TPCameraTrans.position = Vector3.SmoothDamp(TPCameraTrans.position, newCameraPos, ref currentVelocity, 0.3f);
-        }
-        else
-        {
-            // Move the camera to the max distance on the local z axis
-            TPCameraTrans.localPosition = Vector3.SmoothDamp(TPCameraTrans.localPosition, offsetCamera, ref currentVelocity, 0.3f);
+            Debug.DrawRay(cameraPole.position, rayDir, Color.red);
+            // Check if the camera would be colliding with any obstacle
+            if (Physics.Raycast(cameraPole.position, rayDir, out RaycastHit hit, Mathf.Abs(maxCameraDistance), cameraObstacleLayers))
+            {
+                // Move the camera to the impact point
+                Vector3 newCameraPos = hit.point;
+                newCameraPos.y = offsetCamera.y;
+
+                TPCameraTrans.position = Vector3.SmoothDamp(TPCameraTrans.position, newCameraPos, ref currentVelocity, 0.3f);
+            }
+            else
+            {
+                // Move the camera to the max distance on the local z axis
+                TPCameraTrans.localPosition = Vector3.SmoothDamp(TPCameraTrans.localPosition, offsetCamera, ref currentVelocity, 0.3f);
+            }
         }
     }
 }

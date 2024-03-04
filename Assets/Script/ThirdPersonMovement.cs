@@ -42,20 +42,23 @@ public class ThirdPersonMovement : MonoBehaviour
 
     public void ChangeSpeed()
     {
-        switch (ThirdPersonController.Instance.state)
+        if (ThirdPersonController.Instance != null)
         {
-            case "Run":
-                CurrentSpeed = RunSpeed;
-                break;
-            case "Crouch":
-                CurrentSpeed = CrouchSpeed;
-                break;
-            case "Crawl":
-                CurrentSpeed = CrawlSpeed;
-                break;
-            default:
-                CurrentSpeed = WalkSpeed;
-                break;
+            switch (ThirdPersonController.Instance.state)
+            {
+                case "Run":
+                    CurrentSpeed = RunSpeed;
+                    break;
+                case "Crouch":
+                    CurrentSpeed = CrouchSpeed;
+                    break;
+                case "Crawl":
+                    CurrentSpeed = CrawlSpeed;
+                    break;
+                default:
+                    CurrentSpeed = WalkSpeed;
+                    break;
+            }
         }
     }
 
@@ -67,24 +70,27 @@ public class ThirdPersonMovement : MonoBehaviour
 
     private void Move()
     {
+        if (ThirdPersonController.Instance != null)
+        {
+            Vector3 horizontal = ThirdPersonController.Instance.move.ReadValue<Vector2>().x * GetCameraRight();
+            Vector3 vertical = ThirdPersonController.Instance.move.ReadValue<Vector2>().y * GetCameraForward();
+
+            targetDirection += horizontal;
+            targetDirection += vertical;
+
+            targetDirection = targetDirection.normalized;
+
+            if (targetDirection.magnitude >= .1f)
+            {
+                characterController.Move(targetDirection * CurrentSpeed * Time.deltaTime);
+            }
+            targetDirection = Vector3.zero;
+        }
+        
         verticalVelocity += Gravity * Time.deltaTime;
         verticalVelocity = Mathf.Max(verticalVelocity, Gravity / 1.5f);
 
-        Vector3 horizontal = ThirdPersonController.Instance.move.ReadValue<Vector2>().x * GetCameraRight();
-        Vector3 vertical = ThirdPersonController.Instance.move.ReadValue<Vector2>().y * GetCameraForward();
-
-        targetDirection += horizontal;
-        targetDirection += vertical;
-
-        targetDirection = targetDirection.normalized;
-
-        if (targetDirection.magnitude >= .1f)
-        {
-            characterController.Move(targetDirection * CurrentSpeed * Time.deltaTime);
-        }
         characterController.Move(new Vector3(0.0f, verticalVelocity, 0.0f) * Time.deltaTime);
-
-        targetDirection = Vector3.zero;
     }
 
     private void GroundedCheck()
