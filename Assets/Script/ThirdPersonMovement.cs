@@ -5,26 +5,25 @@ using FishNet.Object;
 public class ThirdPersonMovement : NetworkBehaviour
 {
     private ThirdPersonController TPController;
-
+    private ThirdPersonAnimation TPAnimation;
     private Rigidbody rb;
     private CapsuleCollider cc;
-
-    [Header("Speed Settings")]
-    [SerializeField] private float CurrentSpeed;
-    [SerializeField] private float RunSpeed = 4;
-    [SerializeField] private float WalkSpeed = 2;
-    [SerializeField] private float CrouchSpeed = 1.25f;
-    [SerializeField] private float CrawlSpeed = 0.75f;
     private Vector3 movementInput;
 
+    [Header("Speed Settings")]
+    [SerializeField] private float WalkSpeed = 2.5f;
+    [SerializeField] private float CrouchSpeed = 1.5f;
+    [SerializeField] private float CrawlSpeed = 1;
+    private float CurrentSpeed;
+
     [Header("Jump Settings")]
-    [SerializeField] private float JumpHeight = 1.2f;
+    [SerializeField] private float JumpHeight = 5;
 
     [Header("Grounded Settings")]
     [SerializeField] private float GroundedOffset = -0.14f;
     [SerializeField] private float GroundedRadius = 0.28f;
     [SerializeField] private LayerMask GroundLayers;
-    [SerializeField] private bool IsGrounded;
+    private bool IsGrounded;
 
     public override void OnStartClient()
     {
@@ -40,6 +39,7 @@ public class ThirdPersonMovement : NetworkBehaviour
         rb = GetComponent<Rigidbody>();
         cc = GetComponent<CapsuleCollider>();
         TPController = GetComponent<ThirdPersonController>();
+        TPAnimation = GetComponent<ThirdPersonAnimation>();
         CurrentSpeed = WalkSpeed;
     }
     private void Update()
@@ -56,26 +56,28 @@ public class ThirdPersonMovement : NetworkBehaviour
         }
     }
 
+    //Adjust speed and animations according to the player's state.
     public void ChangeSpeed()
     {
-        switch (TPController.state)
+        switch (TPController.MovementState)
         {
-            case "Run":
-                CurrentSpeed = RunSpeed;
-                break;
             case "Crouch":
                 CurrentSpeed = CrouchSpeed;
+                TPAnimation.MovementState = 1;
                 break;
             case "Crawl":
                 CurrentSpeed = CrawlSpeed;
+                TPAnimation.MovementState = 2;
                 break;
-            default:
+            default://walk
                 CurrentSpeed = WalkSpeed;
+                TPAnimation.MovementState = 0;
                 break;
         }
     }
 
-    public void setHitBox(float center, float height)
+    //Adjust the height of Collider according to the player's status
+    public void SetHitBox(float center, float height)
     {
         cc.center = new Vector3(0, center, 0);
         cc.height = height;
@@ -83,10 +85,13 @@ public class ThirdPersonMovement : NetworkBehaviour
 
     private void Move()
     {
-        if (IsGrounded)
+        if (IsGrounded && TPController.Move != null)
         {
-            Vector3 horizontal = TPController.move.ReadValue<Vector2>().x * GetCameraRight();
-            Vector3 vertical = TPController.move.ReadValue<Vector2>().y * GetCameraForward();
+            //for set animation according to movement
+            TPAnimation.MoveVector = TPController.Move.ReadValue<Vector2>();
+
+            Vector3 horizontal = TPController.Move.ReadValue<Vector2>().x * GetCameraRight();
+            Vector3 vertical = TPController.Move.ReadValue<Vector2>().y * GetCameraForward();
 
             movementInput += horizontal;
             movementInput += vertical;
@@ -101,6 +106,7 @@ public class ThirdPersonMovement : NetworkBehaviour
             movementInput = Vector3.zero;
         }
     }
+
     private void GroundedCheck()
     {
         // set sphere position, with offset
@@ -110,16 +116,18 @@ public class ThirdPersonMovement : NetworkBehaviour
             QueryTriggerInteraction.Ignore);
     }
 
+    //This method to allow the player to move left and right according to the direction of the camera.
     private Vector3 GetCameraRight()
     {
-        Vector3 right = TPController.thirdPersonCamera.transform.right;
+        Vector3 right = TPController.ThirdPersonCamera.transform.right;
         right.y = 0;
         return right;
     }
 
+    //This method to allow the player to move forward and backward according to the direction of the camera.
     private Vector3 GetCameraForward()
     {
-        Vector3 forward = TPController.thirdPersonCamera.transform.forward;
+        Vector3 forward = TPController.ThirdPersonCamera.transform.forward;
         forward.y = 0;
         return forward;
     }

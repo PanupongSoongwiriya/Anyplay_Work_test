@@ -3,29 +3,30 @@ using UnityEngine.InputSystem;
 using FishNet.Connection;
 using FishNet.Object;
 
+//This class will control work in various parts of the thirdperson system
 public class ThirdPersonController : NetworkBehaviour
 {
+    //InputAction
     private ThirdPersonAction action;
-    [HideInInspector]
-    public InputAction move;
-    public string state = "Stand";
+    private InputAction move;
 
-    public Camera thirdPersonCamera;
     private ThirdPersonMovement TPMovement;
     private ThirdPersonCamera TPCamera;
-    public GameObject UIController;
+    private string movementState = "Stand";
+
+    [SerializeField] private Camera thirdPersonCamera;
+    [SerializeField] private GameObject uIController;
 
     public override void OnStartClient()
     {
         base.OnStartClient();
-        print(name);
         if (base.IsOwner)
         {
-            print("IsOwner");
             action = new ThirdPersonAction();
             TPMovement = GetComponent<ThirdPersonMovement>();
             TPCamera = GetComponent<ThirdPersonCamera>();
 
+            //InputAction setting when connected
             action.Player.Jump.started += DoJump;
             action.Player.Crouch.started += DoCrouch;
             action.Player.Crawl.started += DoCrawl;
@@ -40,20 +41,11 @@ public class ThirdPersonController : NetworkBehaviour
         }
     }
 
-    private void Awake()
-    {
-        /*Instance = this;
-        action = new ThirdPersonAction();
-        TPMovement = GetComponent<ThirdPersonMovement>();*/
-    }
-    private void Update()
-    {
-    }
     private void OnEnable()
     {
         if (base.IsOwner)
         {
-            print("OnEnable");
+            //InputAction setting on enable
             action.Player.Jump.started += DoJump;
             action.Player.Crouch.started += DoCrouch;
             action.Player.Crawl.started += DoCrawl;
@@ -66,7 +58,7 @@ public class ThirdPersonController : NetworkBehaviour
     {
         if (base.IsOwner)
         {
-            print("OnDisable");
+            //InputAction setting on disable
             action.Player.Jump.started -= DoJump;
             action.Player.Crouch.started -= DoCrouch;
             action.Player.Crawl.started -= DoCrawl;
@@ -81,28 +73,35 @@ public class ThirdPersonController : NetworkBehaviour
 
     private void DoCrawl(InputAction.CallbackContext context)
     {
-        print("DoCrawl");
-        SetState("Crawl", 0.18f, 0.18f, -0.9f);
+        SetPlayerState("Crawl", 0.18f, 0.18f, -1.2f);
     }
 
     private void DoCrouch(InputAction.CallbackContext context)
     {
-        print("DoCrouch");
-        SetState("Crouch", 0.45f, 0.9f, -0.5f);
+        SetPlayerState("Crouch", 0.45f, 0.9f, -0.6f);
     }
-    private void SetState(string s, float center, float height, float y)
+
+    //This method will adjust various settings in the player to suit that state.
+    private void SetPlayerState(string s, float center, float height, float y)
     {
-        if (state == s)
+        //If the player presses the same button, it will return to its stand state.
+        if (movementState == s)
         {
-            state = "Stand";
+            movementState = "Stand";
             center = 0.9f;
             height = 1.8f;
             y = 0;
         }
-        else { state = s; }
+        else { movementState = s; }
 
         TPMovement.ChangeSpeed();
-        TPMovement.setHitBox(center, height);
-        TPCamera.setCameraPositionY(y);
+        TPMovement.SetHitBox(center, height);
+        TPCamera.SetCameraPositionY(y);
     }
+
+    //Encapsulation
+    public InputAction Move { get => move; set => move = value; }
+    public string MovementState { get => movementState; set => movementState = value; }
+    public Camera ThirdPersonCamera { get => thirdPersonCamera; set => thirdPersonCamera = value; }
+    public GameObject UIController { get => uIController; set => uIController = value; }
 }
