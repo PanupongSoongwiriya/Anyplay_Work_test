@@ -14,7 +14,7 @@ public class ThirdPersonController : NetworkBehaviour
     private ThirdPersonCamera TPCamera;
     private string movementState = "Stand";
 
-    [SerializeField] private Camera thirdPersonCamera;
+    [SerializeField] private Transform thirdPersonCamera;
     [SerializeField] private GameObject uIController;
 
     public override void OnStartClient()
@@ -102,6 +102,6 @@ public class ThirdPersonController : NetworkBehaviour
     //Encapsulation
     public InputAction Move { get => move; set => move = value; }
     public string MovementState { get => movementState; set => movementState = value; }
-    public Camera ThirdPersonCamera { get => thirdPersonCamera; set => thirdPersonCamera = value; }
+    public Transform ThirdPersonCamera { get => thirdPersonCamera; set => thirdPersonCamera = value; }
     public GameObject UIController { get => uIController; set => uIController = value; }
 }

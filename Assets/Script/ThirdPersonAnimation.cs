@@ -20,7 +20,6 @@ public class ThirdPersonAnimation : NetworkBehaviour
 
     private void Update()
     {
-        moveVector *= 1.8f;//multiply 2 for smooth transition animation in blend tree
         //set movement animation
         animator.SetFloat("X", moveVector.x, 0.2f, Time.deltaTime);
         animator.SetFloat("Y", moveVector.y, 0.2f, Time.deltaTime);

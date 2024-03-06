@@ -25,10 +25,10 @@ public class ThirdPersonCamera : MonoBehaviour
     {
         TPController = GetComponent<ThirdPersonController>();
 
-        offsetCamera = TPController.ThirdPersonCamera.transform.localPosition;
+        offsetCamera = TPController.ThirdPersonCamera.localPosition;
 
         // Set max camera distance to the distance the camera is from the player in the editor
-        maxCameraDistance = TPController.ThirdPersonCamera.transform.localPosition.z;
+        maxCameraDistance = TPController.ThirdPersonCamera.localPosition.z;
 
         // Get the initial angle for the camera pole
         cameraPitch = cameraPole.localRotation.eulerAngles.x;
@@ -87,9 +87,9 @@ public class ThirdPersonCamera : MonoBehaviour
     //This method will move the camera in or out as appropriate.
     private void MoveCamera()
     {
-        Transform TPCameraTrans = TPController.ThirdPersonCamera.transform;
+        Transform TPCameraTrans = TPController.ThirdPersonCamera;
         Vector3 startVector = cameraPole.position;
-        startVector.y += 1;
+        startVector.y += 1.2f;
         Vector3 rayDir = TPCameraTrans.position - startVector;
 
         Debug.DrawRay(startVector, rayDir, Color.red);
@@ -99,9 +99,14 @@ public class ThirdPersonCamera : MonoBehaviour
         {
             // Move the camera to the impact point
             Vector3 newCameraPos = hit.point;
-            newCameraPos.y = offsetCamera.y;
 
             TPCameraTrans.position = Vector3.SmoothDamp(TPCameraTrans.position, newCameraPos, ref currentVelocity, 0.1f);
+
+
+            //Prevent the camera from sink in the ground
+            Vector3 newTarget = TPCameraTrans.localPosition;
+            newTarget.y = Mathf.Max(newTarget.y, 1);
+            TPCameraTrans.localPosition = Vector3.SmoothDamp(TPCameraTrans.localPosition, newTarget, ref currentVelocity, 0.1f);
         }
         else
         {

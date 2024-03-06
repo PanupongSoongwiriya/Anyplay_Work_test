@@ -119,7 +119,7 @@ public class ThirdPersonMovement : NetworkBehaviour
     //This method to allow the player to move left and right according to the direction of the camera.
     private Vector3 GetCameraRight()
     {
-        Vector3 right = TPController.ThirdPersonCamera.transform.right;
+        Vector3 right = TPController.ThirdPersonCamera.right;
         right.y = 0;
         return right;
     }
@@ -127,7 +127,7 @@ public class ThirdPersonMovement : NetworkBehaviour
     //This method to allow the player to move forward and backward according to the direction of the camera.
     private Vector3 GetCameraForward()
     {
-        Vector3 forward = TPController.ThirdPersonCamera.transform.forward;
+        Vector3 forward = TPController.ThirdPersonCamera.forward;
         forward.y = 0;
         return forward;
     }
