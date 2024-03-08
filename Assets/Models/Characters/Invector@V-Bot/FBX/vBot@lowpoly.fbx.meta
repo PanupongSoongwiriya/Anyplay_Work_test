@@ -3,7 +3,12 @@ guid: 24448906ac934a3489ea7a4fa3b132c2
 ModelImporter:
   serializedVersion: 21300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: V-bot-Materal.002
+    second: {fileID: 2100000, guid: 0ffe484764b7d5d499aa6c695285a5df, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

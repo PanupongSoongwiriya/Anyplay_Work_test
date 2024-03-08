@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 //This class for control camera 
@@ -12,6 +13,11 @@ public class ThirdPersonCamera : MonoBehaviour
     [SerializeField] private LayerMask cameraObstacleLayers;
     private Vector3 offsetCamera;
     private float maxCameraDistance;
+    private float maxRotationX = 60;
+    private float minRotationX = -45;
+    //x = min of range & y = max of range
+    private Vector2 cameraZRange = new Vector2(0, 0.36f);
+    private Vector2 poleZRange = new Vector2(-0.18f, 0.21f);
 
     // For LookAround method
     private Vector2 oldPos;
@@ -20,15 +26,17 @@ public class ThirdPersonCamera : MonoBehaviour
     //For SmoothUpDown method
     private Vector3 targetPos, currentVelocity;
     private bool newTarget;
+    public Vector3 differencePos;
+    public Transform model;
 
     private void Start()
     {
         TPController = GetComponent<ThirdPersonController>();
 
-        offsetCamera = TPController.ThirdPersonCamera.localPosition;
+        offsetCamera = TPController.ThirdPersonCameraHolder.localPosition;
 
         // Set max camera distance to the distance the camera is from the player in the editor
-        maxCameraDistance = TPController.ThirdPersonCamera.localPosition.z;
+        maxCameraDistance = TPController.ThirdPersonCameraHolder.localPosition.z;
 
         // Get the initial angle for the camera pole
         cameraPitch = cameraPole.localRotation.eulerAngles.x;
@@ -47,24 +55,50 @@ public class ThirdPersonCamera : MonoBehaviour
     //This method will move the camera and character(yaw) in the direction the player swipes on the screen.
     public void LookAround(Vector2 newPos)
     {
-        Vector3 differencePos = (newPos - oldPos).normalized;
-        cameraPitch = Mathf.Clamp(cameraPitch - differencePos.y * (cameraSensitivity / 2), -45f, 35f);
+        differencePos = (newPos - oldPos).normalized;
+        cameraPitch = Mathf.Clamp(cameraPitch - differencePos.y * (cameraSensitivity / 2), minRotationX, maxRotationX);
         cameraPole.localRotation = Quaternion.Euler(cameraPitch, 0, 0);
         oldPos = newPos;
+
+        SetCameraZ();
 
         // horizontal (yaw) rotation
         transform.Rotate(transform.up, differencePos.x * cameraSensitivity);
     }
 
     //This method will move the camera up or down according to the player's height at that time.
-    public void SetCameraPositionY(float y)
+    public void SettingCamera(float y, float maxX, float minX, Vector2 poleZ, Vector2 cameraZ)
     {
+        //Set camera property
         Vector3 newPos = cameraPole.transform.localPosition;
         newPos.y = y;
+        maxRotationX = maxX;
+        minRotationX = minX;
+        poleZRange = poleZ;
+        cameraZRange = cameraZ;
+
+        //Set rotation cameraPole
+        cameraPitch = Mathf.Clamp(cameraPitch, minRotationX, maxRotationX);
+        cameraPole.localRotation = Quaternion.Euler(cameraPitch, 0, 0);
+        
+        SetCameraZ();
 
         //For SmoothUpDown method active
         targetPos = newPos;
         newTarget = true;
+    }
+
+    //Set Z axis according to the appropriateness of looking down and looking up
+    private void SetCameraZ()
+    {
+        Vector3 newZ = cameraPole.localPosition;
+        newZ.z = Mathf.Lerp(poleZRange.x, poleZRange.y, (cameraPitch - minRotationX) / (maxRotationX - minRotationX));
+        cameraPole.localPosition = newZ;
+
+        Transform TPCameraTrans = TPController.ThirdPersonCameraHolder.GetChild(0);
+        newZ = TPCameraTrans.localPosition;
+        newZ.z = Mathf.Lerp(cameraZRange.x, cameraZRange.y, (cameraPitch - minRotationX) / (maxRotationX - minRotationX));
+        TPCameraTrans.localPosition = newZ;
     }
 
     //This method will makes moving up and down the camera smoother.
@@ -77,8 +111,9 @@ public class ThirdPersonCamera : MonoBehaviour
             cameraPole.transform.localPosition = new Vector3(0, cameraPole.transform.localPosition.y, 0);
 
             float dist = Vector3.Distance(cameraPole.transform.localPosition, targetPos);
-            if (Mathf.Abs(dist) < 0.01f)
+            if (Mathf.Abs(dist) < 0.05f)
             {
+                cameraPole.transform.localPosition = targetPos;
                 newTarget = false;
             }
         }
@@ -87,10 +122,11 @@ public class ThirdPersonCamera : MonoBehaviour
     //This method will move the camera in or out as appropriate.
     private void MoveCamera()
     {
-        Transform TPCameraTrans = TPController.ThirdPersonCamera;
+        Transform TPCameraHolderTrans = TPController.ThirdPersonCameraHolder;
         Vector3 startVector = cameraPole.position;
-        startVector.y += 1.2f;
-        Vector3 rayDir = TPCameraTrans.position - startVector;
+        startVector.y -= 0.15f;
+        startVector.x += 0.246f;
+        Vector3 rayDir = TPCameraHolderTrans.position - startVector;
 
         Debug.DrawRay(startVector, rayDir, Color.red);
 
@@ -99,19 +135,12 @@ public class ThirdPersonCamera : MonoBehaviour
         {
             // Move the camera to the impact point
             Vector3 newCameraPos = hit.point;
-
-            TPCameraTrans.position = Vector3.SmoothDamp(TPCameraTrans.position, newCameraPos, ref currentVelocity, 0.1f);
-
-
-            //Prevent the camera from sink in the ground
-            Vector3 newTarget = TPCameraTrans.localPosition;
-            newTarget.y = Mathf.Max(newTarget.y, 1);
-            TPCameraTrans.localPosition = Vector3.SmoothDamp(TPCameraTrans.localPosition, newTarget, ref currentVelocity, 0.1f);
+            TPCameraHolderTrans.position = Vector3.SmoothDamp(TPCameraHolderTrans.position, newCameraPos, ref currentVelocity, 0.1f);
         }
         else
         {
             // Move the camera to offsetCamera
-            TPCameraTrans.localPosition = Vector3.SmoothDamp(TPCameraTrans.localPosition, offsetCamera, ref currentVelocity, 0.1f);
+            TPCameraHolderTrans.localPosition = Vector3.SmoothDamp(TPCameraHolderTrans.localPosition, offsetCamera, ref currentVelocity, 0.1f);
         }
     }
 }
